@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 - 2026-10-18
+
+Added Escape with automatic best unarmed/Acrobatics/Athletics selection, native Escape MAP, target Athletics DC and optional effect DC. Escape remains available with occupied hands, without a creature target, or beyond normal attack reach. Conditions, movement and critical-failure retry restrictions remain table-managed.
+
 ## 0.1.2 - 2026-10-18
 
 First public release. Trip, Grapple, Shove, Disarm and Reposition appear below Strikes with native compact attack controls. Each attack chooses an available hand or qualifying weapon using reach, typed modifiers and MAP. Includes source overrides, native target defense checks and native roll visibility.

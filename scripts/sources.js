@@ -1,6 +1,11 @@
 // Scoped Foundry14/PF2e8.6 adapter: no global action, actor or prototype patches.
-export const SLUGS=['trip','grapple','shove','disarm','reposition'];
-export const DC={trip:'reflex',grapple:'fortitude',shove:'fortitude',disarm:'reflex',reposition:'fortitude'};
+export const SLUGS=['trip','grapple','shove','disarm','reposition','escape'];
+export const DC={trip:'reflex',grapple:'fortitude',shove:'fortitude',disarm:'reflex',reposition:'fortitude',escape:'athletics'};
+function escapeContext(a,statistic,target,penalty=0){
+ const variant=new (game.pf2e.actions.get('escape').constructor)().toActionVariant();
+ const modifiers=penalty?[new game.pf2e.Modifier({slug:'multiple-attack-penalty',label:'PF2E.MultipleAttackPenalty',modifier:penalty})]:[];
+ return variant.checkContext({actor:a,target:target?.actor,buildContext:args=>({item:args.item,rollOptions:[...args.rollOptions,...variant.traits]})},{slug:statistic,rollOptions:variant.rollOptions,modifiers});
+}
 const traitsFor=s=>s==='trip'?['trip','ranged-trip']:s==='reposition'?[]:[s];
 export function rollerToken(a){
  const controlled=canvas.tokens?.controlled.filter(t=>t.actor?.uuid===a.uuid)??[];
@@ -13,6 +18,7 @@ function freeHands(a){
  return a.handsReallyFree+a.inventory.contents.filter(i=>i.isOfType('weapon')&&i.traits.has('free-hand')).reduce((n,i)=>n+i.handsHeld,0);
 }
 export function sources(a,slug,target){
+ if(slug==='escape')return {sources:['unarmed','acrobatics','athletics'].flatMap(statistic=>{try{const context=escapeContext(a,statistic,target);return context?[{id:statistic,statistic,label:statistic==='unarmed'?game.i18n.localize('PF2E.TraitUnarmed'):a.getStatistic(statistic).label,kind:'escape',inRange:true}]:[];}catch{return [];}}),reason:null};
  const origin=rollerToken(a);
  if(!origin||!target||origin===target)return {sources:[],reason:!origin?'Select this character’s token on the scene.':origin===target?'Target another creature.':'Target one creature.'};
  const entries=a.system.actions??[],fist=entries.find(s=>s.item.slug==='basic-unarmed'||s.item.baseType==='fist'),choices=[];
@@ -35,6 +41,7 @@ function sourceModifiers(a,c){
 }
 function optionsFor(a,slug,c,target){return [...a.getRollOptions(['all','skill-check','athletics','attack']),`action:${slug}`,'attack',...c.item.getRollOptions('item'),...c.item.traits,...target.actor.getSelfRollOptions('target')];}
 export function evaluateSource(a,slug,c,target,map){
+ if(slug==='escape'){const penalty=-5*map,context=escapeContext(a,c.statistic,target,penalty);return {...c,penalty,score:context.statistic.totalModifier,reason:'Escape (standard MAP)'};}
  const stat=a.getStatistic('athletics'),options=optionsFor(a,slug,c,target);
  const preview=stat.extend({domains:[...new Set([...stat.domains,'attack'])]});
  const native=preview.getChatData({item:c.item,target:target.actor,extraRollOptions:options});
@@ -57,6 +64,7 @@ export function plan(a,slug,target,map,override='auto'){
  return {choice:ranked[0]??null,sources:available.sources,reason:ranked.length?null:override!=='auto'?'Selected source is unavailable.':available.reason};
 }
 export function nativeVariant(a,slug,choice,target){
+ if(slug==='escape')return new (game.pf2e.actions.get('escape').constructor)().toActionVariant();
  const action=game.pf2e.actions.get(slug),NativeAction=game.pf2e.actions.get('reposition').constructor;
  const adapted=new NativeAction({cost:action.cost,description:action.description,img:action.img,name:action.name,slug,traits:action.traits,statistic:'athletics',difficultyClass:DC[slug],notes:foundry.utils.deepClone(action.notes),rollOptions:action.rollOptions,modifiers:action.modifiers});
  const variant=adapted.toActionVariant(),nativeContext=variant.checkContext.bind(variant);
