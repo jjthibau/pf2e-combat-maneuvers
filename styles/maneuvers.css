@@ -1,0 +1,13 @@
+/* Reuse native Actions .strike, .item-image, .name, .button-group and .tag styles. */
+.combat-maneuvers {margin:8px 0 12px}
+.combat-maneuvers > header {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.combat-maneuvers h3 {font:700 16px var(--serif,serif);color:var(--color-pf-primary,#5e0000);margin:0}
+.combat-maneuvers .maneuver-status {font-size:11px;opacity:.8}
+.combat-maneuvers .maneuver-row {padding:3px 0;border-bottom:1px solid #7773}
+.combat-maneuvers .maneuver-details {grid-area:summary;padding:5px 0 5px 40px;font-size:12px}
+.combat-maneuvers .maneuver-details p {margin:3px 0}
+.combat-maneuvers .maneuver-unavailable {font-size:11px;opacity:.75}
+.combat-maneuvers .maneuver-attacks[hidden],.combat-maneuvers .maneuver-unavailable[hidden],.combat-maneuvers .maneuver-details[hidden] {display:none}
+.combat-maneuvers .maneuver-overrides {font-size:11px;margin:7px 0}
+.combat-maneuvers .maneuver-overrides label {display:flex;align-items:center;justify-content:space-between;margin:4px 0}
+.combat-maneuvers .maneuver-overrides select {width:auto;max-width:260px;height:24px;font:inherit}
