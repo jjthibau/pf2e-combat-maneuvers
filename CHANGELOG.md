@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 - 2026-10-18
+
+Removed Escape's reminder paragraph and repeated per-attack source lines. Expanded Escape retains only the effect DC override; selected source remains available on hover.
+
 ## 0.1.3 - 2026-10-18
 
 Added Escape with automatic best unarmed/Acrobatics/Athletics selection, native Escape MAP, target Athletics DC and optional effect DC. Escape remains available with occupied hands, without a creature target, or beyond normal attack reach. Conditions, movement and critical-failure retry restrictions remain table-managed.
