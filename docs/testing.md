@@ -1,5 +1,7 @@
 # Validation
 
+Version 0.1.5 supersedes the earlier Escape DC workflow below. Escape has no expanded reminder area, DC input or prompt. Actual targeted, untargeted and multiple-target Escape rolls were checked for no DC and no automatic outcome. Best-statistic selection and MAP still match actual rolls; the shared native Escape action is unchanged. Native player and compact-UI checks were rerun. The GM adjudicates Escape outcomes.
+
 Version 0.1.3 adds native Escape checks: best-statistic switching among unarmed, Acrobatics and Athletics, real rolls matching previews, standard MAP, occupied hands, target Athletics DC, out-of-reach use, source override, explicit/environmental DC, no-target prompt, invalid DC rejection and cancellation. The existing source-selection, player and compact-UI checks were rerun against the release runtime, including a player's real Escape against an unowned target.
 
 Native validation used Foundry 14.369 / PF2e 8.6.0 with synthetic characters and the module alone. The automatic-source engine passed 43 checks: occupied hands/shields, reach, typed bonus stacking, source selection per attack, actual MAP rolls, target defenses, player ownership, cancellation, effect modifiers and movement refresh.

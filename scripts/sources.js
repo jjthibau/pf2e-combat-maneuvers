@@ -1,6 +1,6 @@
 // Scoped Foundry14/PF2e8.6 adapter: no global action, actor or prototype patches.
 export const SLUGS=['trip','grapple','shove','disarm','reposition','escape'];
-export const DC={trip:'reflex',grapple:'fortitude',shove:'fortitude',disarm:'reflex',reposition:'fortitude',escape:'athletics'};
+export const DC={trip:'reflex',grapple:'fortitude',shove:'fortitude',disarm:'reflex',reposition:'fortitude'};
 function escapeContext(a,statistic,target,penalty=0){
  const variant=new (game.pf2e.actions.get('escape').constructor)().toActionVariant();
  const modifiers=penalty?[new game.pf2e.Modifier({slug:'multiple-attack-penalty',label:'PF2E.MultipleAttackPenalty',modifier:penalty})]:[];
@@ -64,7 +64,7 @@ export function plan(a,slug,target,map,override='auto'){
  return {choice:ranked[0]??null,sources:available.sources,reason:ranked.length?null:override!=='auto'?'Selected source is unavailable.':available.reason};
 }
 export function nativeVariant(a,slug,choice,target){
- if(slug==='escape')return new (game.pf2e.actions.get('escape').constructor)().toActionVariant();
+ if(slug==='escape'){const escape=new (game.pf2e.actions.get('escape').constructor)();escape.difficultyClass=undefined;return escape.toActionVariant();}
  const action=game.pf2e.actions.get(slug),NativeAction=game.pf2e.actions.get('reposition').constructor;
  const adapted=new NativeAction({cost:action.cost,description:action.description,img:action.img,name:action.name,slug,traits:action.traits,statistic:'athletics',difficultyClass:DC[slug],notes:foundry.utils.deepClone(action.notes),rollOptions:action.rollOptions,modifiers:action.modifiers});
  const variant=adapted.toActionVariant(),nativeContext=variant.checkContext.bind(variant);
