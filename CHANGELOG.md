@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 - 2026-11-18
+
+- Use native action options in maneuver previews and refresh only sheets affected by actor, token and targeting changes.
+
 ## 0.1.5 - 2026-10-18
 
 Removed Escape's sheet DC control, DC prompt, and automatic DC/outcome comparison. Escape simply rolls the best unarmed/Acrobatics/Athletics modifier with MAP, regardless of targeting. The GM adjudicates the result. Escape has no expanded reminder area.

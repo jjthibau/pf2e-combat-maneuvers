@@ -39,7 +39,7 @@ function sourceModifiers(a,c){
  if(c.ranged)mods.push(new game.pf2e.Modifier({slug:'ranged-trip',label:'PF2E.TraitRangedTrip',modifier:-2,type:'circumstance'}));
  return mods;
 }
-function optionsFor(a,slug,c,target){return [...a.getRollOptions(['all','skill-check','athletics','attack']),`action:${slug}`,'attack',...c.item.getRollOptions('item'),...c.item.traits,...target.actor.getSelfRollOptions('target')];}
+function optionsFor(a,slug,c,target){return [...a.getRollOptions(['all','skill-check','athletics','attack']),`action:${slug}`,'attack',...(game.pf2e.actions.get(slug).rollOptions??[]),...c.item.getRollOptions('item'),...c.item.traits,...target.actor.getSelfRollOptions('target')];}
 export function evaluateSource(a,slug,c,target,map){
  if(slug==='escape'){const penalty=-5*map,context=escapeContext(a,c.statistic,target,penalty);return {...c,penalty,score:context.statistic.totalModifier,reason:'Escape (standard MAP)'};}
  const stat=a.getStatistic('athletics'),options=optionsFor(a,slug,c,target);
@@ -69,7 +69,7 @@ export function nativeVariant(a,slug,choice,target){
  const adapted=new NativeAction({cost:action.cost,description:action.description,img:action.img,name:action.name,slug,traits:action.traits,statistic:'athletics',difficultyClass:DC[slug],notes:foundry.utils.deepClone(action.notes),rollOptions:action.rollOptions,modifiers:action.modifiers});
  const variant=adapted.toActionVariant(),nativeContext=variant.checkContext.bind(variant);
  variant.checkContext=(opts,data)=>{
-  const context=nativeContext(opts,{...data,item:choice.item,modifiers:[...(data.modifiers??[]),...sourceModifiers(a,choice)],rollOptions:[...data.rollOptions,...optionsFor(a,slug,choice,target)]});
+  const context=nativeContext(opts,{...data,item:choice.item,modifiers:[...(data.modifiers??[]),...sourceModifiers(a,choice)],rollOptions:[...new Set([...data.rollOptions,...optionsFor(a,slug,choice,target)])]});
   if(context?.statistic?.extend)context.statistic=context.statistic.extend({domains:[...new Set([...context.statistic.domains,'attack'])]});
   return context;
  };

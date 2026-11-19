@@ -31,4 +31,7 @@
 !/docs/testing.md
 !/styles/maneuvers.css
 **/__pycache__/
+!/tests/
+/tests/*
+!/tests/previews.test.mjs
 **/*.pyc

@@ -9,11 +9,11 @@ export async function roll(a,slug,{map=0,sourceId,event}={}){
  const selected=slug==='escape'?null:target();if(slug!=='escape'&&!selected)throw Error('Target exactly one creature.');
  await Promise.all([rollerToken(a)?.animation,selected?.animation].filter(Boolean));
  const p=plan(a,slug,selected,map,sourceId??overrideFor(a,slug));if(!p.choice)throw Error(p.reason??'No available source.');
- if(rolling.has(a.uuid))return null;rolling.add(a.uuid);refresh();
+ if(rolling.has(a.uuid))return null;rolling.add(a.uuid);refresh(new Set([a.uuid]));
  try{
   const results=await nativeVariant(a,slug,p.choice,selected).use({actors:[a],target:selected,multipleAttackPenalty:p.choice.penalty,event,...(slug==='escape'?{statistic:p.choice.statistic}:{})});return {results,source:{id:p.choice.id,label:p.choice.label,penalty:p.choice.penalty,score:p.choice.score}};
  }
- finally{rolling.delete(a.uuid);refresh();}
+ finally{rolling.delete(a.uuid);refresh(new Set([a.uuid]));}
 }
 function update(panel,a){
  const selected=target(),origin=rollerToken(a),distance=selected&&origin?origin.distanceTo(selected):null;
@@ -36,7 +36,24 @@ function update(panel,a){
   if(select.innerHTML!==html)select.innerHTML=html;select.value=current;select.disabled=!a.isOwner;
  }
 }
-function refresh(){for(const[key,{panel,actor}]of panels){if(!panel.isConnected)panels.delete(key);else update(panel,actor);}}
+function refresh(actors){
+ for(const[key,{panel,actor}]of panels){
+  if(!panel.isConnected)panels.delete(key);
+  else if(!actors||actors.has(actor.uuid))update(panel,actor);
+ }
+}
+const refreshActors=new Set();let refreshAll=false,refreshScheduled=false;
+function scheduleRefresh(actor){
+ if(!actor||actor.uuid===target()?.actor.uuid)refreshAll=true;
+ else refreshActors.add(actor.uuid);
+ if(refreshScheduled)return;
+ refreshScheduled=true;
+ requestAnimationFrame(()=>{
+  const changed=refreshAll?null:new Set(refreshActors);
+  refreshActors.clear();refreshAll=false;refreshScheduled=false;
+  refresh(changed);
+ });
+}
 function render(sheet,html){
  const actor=sheet.actor;if(!actor.isOfType('character'))return;
  const root=html instanceof HTMLElement?html:html[0],encounter=root.querySelector('.actions-panel[data-tab="encounter"]');if(!encounter)return;
@@ -44,7 +61,7 @@ function render(sheet,html){
  panel.innerHTML=`<header><h3>Combat Maneuvers</h3><span data-maneuver-status role="status" class="maneuver-status"></span></header><ol class="actions-list directory-list">${SLUGS.map(slug=>`<li class="strike maneuver-row" data-maneuver-row="${slug}"><div class="item-image framed"><img src="${esc(game.pf2e.actions.get(slug).img)}" alt=""></div><section><h4 class="name">${slug==='escape'?esc(game.i18n.localize(game.pf2e.actions.get(slug).name)):`<a data-maneuver-details="${slug}" role="button" tabindex="0" aria-expanded="false">${esc(game.i18n.localize(game.pf2e.actions.get(slug).name))}</a>`}</h4><div class="button-group tags maneuver-attacks">${[0,1,2].map(map=>`<button type="button" class="tag tag_secondary" data-maneuver="${slug}" data-map="${map}" disabled></button>`).join('')}</div><span class="maneuver-unavailable" hidden></span></section>${slug==='escape'?'':`<div class="maneuver-details item-summary" hidden><p>Athletics &middot; ${esc(game.i18n.localize(CONFIG.PF2E.saves[DC[slug]]))} DC</p>${[0,1,2].map(map=>`<p>${['First','Second','Third'][map]} attack: <span data-source-label="${map}"></span></p>`).join('')}</div>`}</li>`).join('')}</ol><details class="maneuver-overrides"><summary>Source overrides</summary>${SLUGS.map(slug=>`<label>${esc(game.i18n.localize(game.pf2e.actions.get(slug).name))}<select data-source-override="${slug}" aria-label="${slug} source override"></select></label>`).join('')}</details>`;
  const strikes=encounter.querySelector('[data-strikes]');if(strikes)strikes.after(panel);else encounter.prepend(panel);
  panels.set(sheet.appId??sheet.id,{panel,actor});update(panel,actor);
- panel.addEventListener('change',e=>{const s=e.target.dataset.sourceOverride;if(s){overrides.set(actor.uuid+':'+s,e.target.value);refresh();}});
+ panel.addEventListener('change',e=>{const s=e.target.dataset.sourceOverride;if(s){overrides.set(actor.uuid+':'+s,e.target.value);scheduleRefresh(actor);}});
  const toggleDetails=anchor=>{const details=anchor.closest('[data-maneuver-row]').querySelector('.maneuver-details');details.hidden=!details.hidden;anchor.setAttribute('aria-expanded',String(!details.hidden));};
  panel.addEventListener('keydown',e=>{const anchor=e.target.closest('[data-maneuver-details]');if(anchor&&['Enter',' '].includes(e.key)){e.preventDefault();toggleDetails(anchor);}});
  panel.addEventListener('click',async e=>{const anchor=e.target.closest('[data-maneuver-details]');if(anchor){e.preventDefault();e.stopPropagation();toggleDetails(anchor);return;}const b=e.target.closest('[data-maneuver]');if(!b)return;e.preventDefault();e.stopPropagation();try{await roll(actor,b.dataset.maneuver,{map:Number(b.dataset.map),event:e});}catch(error){ui.notifications.warn(error.message);}});
@@ -52,11 +69,16 @@ function render(sheet,html){
 Hooks.once('ready',()=>{
  game.modules.get(ID).api={roll,plan:(a,s,map,source='auto')=>plan(a,s,s==='escape'?null:target(),map,source)};
  Hooks.on('renderCharacterSheetPF2e',render);Hooks.on('closeCharacterSheetPF2e',s=>panels.delete(s.appId??s.id));
- for(const hook of ['targetToken','updateToken','controlToken','canvasReady','updateActor','createItem','updateItem','deleteItem'])Hooks.on(hook,refresh);
- const animations=new WeakSet();let refreshTimer;
+ Hooks.on('targetToken',user=>{if(user===game.user)scheduleRefresh();});
+ Hooks.on('canvasReady',()=>scheduleRefresh());
+ const relevant=actor=>actor&&(target()?.actor.uuid===actor.uuid||[...panels.values()].some(panel=>panel.actor.uuid===actor.uuid));
+ for(const hook of ['updateToken','controlToken'])Hooks.on(hook,token=>{if(relevant(token.actor))scheduleRefresh(token.actor);});
+ Hooks.on('updateActor',actor=>{if(relevant(actor))scheduleRefresh(actor);});
+ for(const hook of ['createItem','updateItem','deleteItem'])Hooks.on(hook,item=>{if(relevant(item.actor))scheduleRefresh(item.actor);});
+ const animations=new WeakSet();
  Hooks.on('refreshToken',(token,flags)=>{
-  if(!flags.refreshPosition&&!flags.refreshSize&&!flags.refreshElevation)return;
-  if(token.animation){if(!animations.has(token)){animations.add(token);token.animation.finally(()=>{animations.delete(token);refresh();});}}
-  else{clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,40);}
+  if((!flags.refreshPosition&&!flags.refreshSize&&!flags.refreshElevation)||!relevant(token.actor))return;
+  if(token.animation){if(!animations.has(token)){animations.add(token);const done=()=>{animations.delete(token);scheduleRefresh(token.actor);};token.animation.then(done,done);}}
+  else scheduleRefresh(token.actor);
  });
 });
